@@ -1,9 +1,11 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MuratBaloglu.Application.Abstractions.Storage;
+using MuratBaloglu.Application.Consts;
+using MuratBaloglu.Application.CustomAttributes;
+using MuratBaloglu.Application.Enums;
 using MuratBaloglu.Application.Models.AboutMe;
-using MuratBaloglu.Application.Models.SocialMediaAccounts;
 using MuratBaloglu.Application.Repositories.AboutMeImageFileRepository;
 using MuratBaloglu.Application.Repositories.AboutMeRepository;
 using MuratBaloglu.Domain.Entities;
@@ -56,6 +58,8 @@ namespace MuratBaloglu.API.Controllers
         }
 
         [HttpPost("[action]")]
+        [Authorize(AuthenticationSchemes = "Admin")]
+        [AuthorizeDefinition(Menu = AuthorizeDefinitionConstants.AboutMe, ActionType = ActionType.Writing, Definition = "Hakkında Ekleme veya Güncelleme")]
         public async Task<IActionResult> AddAboutMe(AboutMeAddModel aboutMeAddModel)
         {
             if (ModelState.IsValid)
@@ -81,10 +85,12 @@ namespace MuratBaloglu.API.Controllers
                 return Ok(aboutMeAddModel);
             }
 
-            return BadRequest("Hakkında eklenirken bir hata ile karşılaşıldı ...");
+            return BadRequest(new { Message = "Hakkında eklenirken bir hata ile karşılaşıldı." });
         }
 
         [HttpPost("[action]")]
+        [Authorize(AuthenticationSchemes = "Admin")]
+        [AuthorizeDefinition(Menu = AuthorizeDefinitionConstants.AboutMe, ActionType = ActionType.Writing, Definition = "Anasayfa Hakkında Ekleme veya Güncelleme")]
         public async Task<IActionResult> AddHomeAboutMe(AboutMeAddModel aboutMeAddModel)
         {
             if (ModelState.IsValid)
@@ -110,7 +116,7 @@ namespace MuratBaloglu.API.Controllers
                 return Ok(aboutMeAddModel);
             }
 
-            return BadRequest("Anasayfadaki hakkında yazısı eklenirken bir hata ile karşılaşıldı ...");
+            return BadRequest(new { Message = "Anasayfadaki hakkında yazısı eklenirken bir hata ile karşılaşıldı." });
         }
 
         [HttpGet("[action]")]
@@ -130,6 +136,8 @@ namespace MuratBaloglu.API.Controllers
         }
 
         [HttpPost("[action]")]
+        [Authorize(AuthenticationSchemes = "Admin")]
+        [AuthorizeDefinition(Menu = AuthorizeDefinitionConstants.AboutMe, ActionType = ActionType.Writing, Definition = "Anasayfa Hakkında Resmi Ekle Yada Değiştirme")]
         public async Task<IActionResult> Upload()
         {
             var query = await _aboutMeReadRepository.GetAll(false).FirstOrDefaultAsync();

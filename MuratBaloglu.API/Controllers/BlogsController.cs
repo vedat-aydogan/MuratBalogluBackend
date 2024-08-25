@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MuratBaloglu.Application.Abstractions.Storage;
+using MuratBaloglu.Application.Consts;
+using MuratBaloglu.Application.CustomAttributes;
+using MuratBaloglu.Application.Enums;
 using MuratBaloglu.Application.Models.Blogs;
 using MuratBaloglu.Application.Models.Common;
 using MuratBaloglu.Application.Repositories.BlogImageFileRepository;
@@ -13,6 +17,7 @@ namespace MuratBaloglu.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[Authorize(AuthenticationSchemes = "Admin")]
     public class BlogsController : ControllerBase
     {
         private readonly IBlogReadRepository _blogReadRepository;
@@ -143,6 +148,8 @@ namespace MuratBaloglu.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(AuthenticationSchemes = "Admin")]
+        [AuthorizeDefinition(Menu = AuthorizeDefinitionConstants.Blogs, ActionType = ActionType.Writing, Definition = "Blog Ekleme")]
         public async Task<IActionResult> Post(BlogAddModel blogAddModel)
         {
             if (ModelState.IsValid)
@@ -170,13 +177,15 @@ namespace MuratBaloglu.API.Controllers
                     return Ok(blog);
                 }
                 else
-                    return BadRequest("Aynı blog başlığına sahip zaten bir blog var. Ya blog başlığını değiştiriniz yada aynı başlığa sahip bloğu siliniz ...");
+                    return BadRequest(new { Message = "Aynı blog başlığına sahip zaten bir blog var." });
             }
 
-            return BadRequest("Blog Oluşturulurken bir hata ile karşılaşıldı ...");
+            return BadRequest(new { Message = "Blog Oluşturulurken bir hata ile karşılaşıldı." });
         }
 
         [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = "Admin")]
+        [AuthorizeDefinition(Menu = AuthorizeDefinitionConstants.Blogs, ActionType = ActionType.Deleting, Definition = "Blog Silme")]
         public async Task<IActionResult> Delete(string id)
         {
             if (ModelState.IsValid)
@@ -197,10 +206,12 @@ namespace MuratBaloglu.API.Controllers
                 }
             }
 
-            return BadRequest("Silme aşamasında bir sorun ile karşılaşıldı..");
+            return BadRequest(new { Message = "Silme aşamasında bir sorun ile karşılaşıldı." });
         }
 
         [HttpPut]
+        [Authorize(AuthenticationSchemes = "Admin")]
+        [AuthorizeDefinition(Menu = AuthorizeDefinitionConstants.Blogs, ActionType = ActionType.Updating, Definition = "Blog Güncelleme")]
         public async Task<IActionResult> Put(BlogUpdateModel blogUpdateModel)
         {
             if (ModelState.IsValid)
@@ -209,16 +220,19 @@ namespace MuratBaloglu.API.Controllers
                 blog.Title = blogUpdateModel.Title.Trim();
                 blog.CardContext = blogUpdateModel.CardContext;
                 blog.Context = blogUpdateModel.Context;
+                blog.DetailUrl = NameRegulatoryOperation.RegulateCharacters(blogUpdateModel.Title);
 
                 await _blogWriteRepository.SaveAsync();
 
                 return Ok(blog);
             }
 
-            return BadRequest("Blog güncellenirken bir hata ile karşılaşıldı ...");
+            return BadRequest(new { Message = "Blog güncellenirken bir hata ile karşılaşıldı." });
         }
 
         [HttpPost("[action]")]
+        [Authorize(AuthenticationSchemes = "Admin")]
+        [AuthorizeDefinition(Menu = AuthorizeDefinitionConstants.Blogs, ActionType = ActionType.Writing, Definition = "Blog Kartı İçin Resim Yükleme")]
         public async Task<IActionResult> UploadBlogImageForBlogCard(string id)
         {
             var blogImageFiles = _blogImageFileReadRepository.GetWhere(bif => bif.BlogId == Guid.Parse(id) && bif.IsBlogCardImage);
@@ -248,7 +262,7 @@ namespace MuratBaloglu.API.Controllers
             return Ok();
         }
 
-        [HttpPost("[action]")] //İlgili bloğa ait resimleri yüklemek için bu action ı kullanıyoruz.
+        [HttpPost("[action]")] //İlgili bloğa ait resimleri yüklemek için bu action ı kullanıyoruz.        
         public async Task<IActionResult> Upload(string id)
         {
             var result = await _storageService.UploadAsync("resources", Request.Form.Files);
